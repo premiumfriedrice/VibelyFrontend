@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useVibely } from "@/lib/store";
-import { formatCount, matchPercent, ProductResult } from "@/lib/types";
+import { formatCount, resolveMediaUrl, ProductResult } from "@/lib/types";
 import { MOCK_PRODUCTS, RELATED_CONTENT } from "@/lib/mock-data";
 import { investigateProducts } from "@/lib/api";
 
@@ -15,6 +15,7 @@ export default function DetailModal() {
     setSelectedResult,
     toggleSaved,
     isSaved,
+    results,
   } = useVibely();
 
   const [showFullCaption, setShowFullCaption] = useState(false);
@@ -27,18 +28,25 @@ export default function DetailModal() {
 
   const result = selectedResult;
   const saved = isSaved(result.content_id);
+  const thumbUrl = resolveMediaUrl(result.thumb);
+  const videoUrl = resolveMediaUrl(result.video_url);
+  const hasVideo = !!result.video_url;
+
+  // Use other results as related content, excluding current
+  const relatedContent = results
+    .filter((r) => r.content_id !== result.content_id)
+    .slice(0, 6);
+  const relatedItems = relatedContent.length > 0 ? relatedContent : RELATED_CONTENT;
 
   const handleInvestigate = async () => {
     setInvestigateState("loading");
     try {
-      // Fetch thumbnail as blob and send to products API
-      const res = await fetch(result.thumb);
+      const res = await fetch(thumbUrl);
       const blob = await res.blob();
       const results = await investigateProducts(blob);
       setProducts(results);
       setInvestigateState("results");
     } catch {
-      // Fallback to mock products
       console.warn("Products API unreachable, using demo data");
       setProducts(MOCK_PRODUCTS);
       setInvestigateState("results");
@@ -96,16 +104,10 @@ export default function DetailModal() {
               </button>
 
               <span
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-                style={{
-                  background: "var(--accent-soft)",
-                  color: "var(--accent)",
-                }}
+                className="text-sm font-medium"
+                style={{ fontFamily: "var(--font-display)", color: "var(--ink3)" }}
               >
-                <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor">
-                  <path d="M6 0l1.5 4H12l-3.5 2.5L10 11 6 8l-4 3 1.5-4.5L0 4h4.5z" />
-                </svg>
-                {matchPercent(result.score)}
+                @{result.creator}
               </span>
 
               <button
@@ -127,11 +129,22 @@ export default function DetailModal() {
             <div className="flex-1 overflow-y-auto">
               {/* Media */}
               <div className="relative aspect-[9/12] md:aspect-[9/10] w-full bg-bg3 overflow-hidden">
-                <img
-                  src={result.thumb}
-                  alt={result.caption}
-                  className="w-full h-full object-cover"
-                />
+                {hasVideo ? (
+                  <video
+                    src={videoUrl}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src={thumbUrl}
+                    alt={result.caption}
+                    className="w-full h-full object-cover"
+                  />
+                )}
                 {/* Gradient overlay */}
                 <div
                   className="absolute bottom-0 left-0 right-0 h-24"
@@ -275,16 +288,21 @@ export default function DetailModal() {
                       </p>
                       <div className="grid grid-cols-2 gap-3">
                         {products.map((product) => (
-                          <div
+                          <a
                             key={product.id}
+                            href={product.productURL || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="v-card rounded-xl overflow-hidden group cursor-pointer hover:shadow-md transition-shadow"
                           >
                             <div className="aspect-square bg-bg3 overflow-hidden">
-                              <img
-                                src={product.imageURL}
-                                alt={product.name}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
+                              {product.imageURL && (
+                                <img
+                                  src={product.imageURL}
+                                  alt={product.name}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                />
+                              )}
                             </div>
                             <div className="p-2.5">
                               <p className="text-xs font-medium text-ink2 line-clamp-2 leading-snug">
@@ -308,7 +326,7 @@ export default function DetailModal() {
                                 </span>
                               </div>
                             </div>
-                          </div>
+                          </a>
                         ))}
                       </div>
                     </motion.div>
@@ -345,19 +363,19 @@ export default function DetailModal() {
                     Related
                   </p>
                   <div className="flex gap-2.5 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide">
-                    {RELATED_CONTENT.map((item) => (
+                    {relatedItems.map((item) => (
                       <button
                         key={item.content_id}
                         onClick={() => {
                           setShowFullCaption(false);
                           setInvestigateState("idle");
-                          // Update selected result inline
-                          // Using the store setter via the parent
+                          setProducts([]);
+                          setSelectedResult(item);
                         }}
                         className="shrink-0 relative w-20 h-28 rounded-xl overflow-hidden bg-bg3 group"
                       >
                         <img
-                          src={item.thumb}
+                          src={resolveMediaUrl(item.thumb)}
                           alt={item.caption}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />

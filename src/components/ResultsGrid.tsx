@@ -1,8 +1,9 @@
 "use client";
 
+import { useRef } from "react";
 import { motion } from "framer-motion";
 import { useVibely } from "@/lib/store";
-import { formatCount, matchPercent, type Platform } from "@/lib/types";
+import { formatCount, resolveMediaUrl, type Platform } from "@/lib/types";
 
 function PlatformBadge({ platform }: { platform: Platform }) {
   return (
@@ -32,13 +33,112 @@ function PlatformBadge({ platform }: { platform: Platform }) {
   );
 }
 
+function ResultCard({ result, index }: { result: ReturnType<typeof useVibely>["filteredResults"][0]; index: number }) {
+  const { setSelectedResult, setShowDetail } = useVibely();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const thumbUrl = resolveMediaUrl(result.thumb);
+  const videoUrl = resolveMediaUrl(result.video_url);
+  const hasVideo = !!result.video_url;
+
+  const handleMouseEnter = () => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (videoRef.current) {
+      videoRef.current.pause();
+    }
+  };
+
+  return (
+    <motion.button
+      key={result.content_id}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        delay: index * 0.04,
+        duration: 0.4,
+        type: "spring",
+        stiffness: 260,
+        damping: 24,
+      }}
+      onClick={() => {
+        setSelectedResult(result);
+        setShowDetail(true);
+      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className="text-left group"
+    >
+      <div className="v-card rounded-2xl overflow-hidden transition-shadow hover:shadow-lg">
+        {/* Thumbnail / Video */}
+        <div className="relative aspect-[3/4] overflow-hidden bg-bg3">
+          {hasVideo && (
+            <video
+              ref={videoRef}
+              src={videoUrl}
+              muted
+              loop
+              playsInline
+              preload="none"
+              className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            />
+          )}
+          <img
+            src={thumbUrl}
+            alt={result.caption}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+          />
+          {/* Platform badge */}
+          <div className="absolute top-2.5 left-2.5">
+            <PlatformBadge platform={result.platform} />
+          </div>
+        </div>
+
+        {/* Info */}
+        <div className="px-3 py-2.5">
+          <p className="text-xs font-medium" style={{ color: "var(--accent)" }}>
+            @{result.creator}
+          </p>
+          <p className="text-xs text-ink2 mt-0.5 line-clamp-2 leading-relaxed">
+            {result.caption}
+          </p>
+          <div className="flex items-center gap-3 mt-2 text-ink4">
+            <span className="flex items-center gap-1 text-[10px]">
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                <path
+                  d="M1.5 6.5l3-3.5 2.5 2L10.5 1.5"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path d="M1.5 6.5v4h9v-4" stroke="currentColor" strokeWidth="1.2" />
+              </svg>
+              {formatCount(result.views)}
+            </span>
+            <span className="flex items-center gap-1 text-[10px]">
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor">
+                <path d="M6 10.5s-5-3.5-5-6.5a3 3 0 015-2.2A3 3 0 0111 4c0 3-5 6.5-5 6.5z" />
+              </svg>
+              {formatCount(result.likes)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </motion.button>
+  );
+}
+
 export default function ResultsGrid() {
   const {
     filteredResults,
     platformFilter,
     setPlatformFilter,
-    setSelectedResult,
-    setShowDetail,
     query,
   } = useVibely();
 
@@ -93,86 +193,7 @@ export default function ResultsGrid() {
       {/* Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
         {filteredResults.map((result, i) => (
-          <motion.button
-            key={result.content_id}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              delay: i * 0.04,
-              duration: 0.4,
-              type: "spring",
-              stiffness: 260,
-              damping: 24,
-            }}
-            onClick={() => {
-              setSelectedResult(result);
-              setShowDetail(true);
-            }}
-            className="text-left group"
-          >
-            <div className="v-card rounded-2xl overflow-hidden transition-shadow hover:shadow-lg">
-              {/* Thumbnail */}
-              <div className="relative aspect-[3/4] overflow-hidden bg-bg3">
-                <img
-                  src={result.thumb}
-                  alt={result.caption}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
-                {/* Platform badge */}
-                <div className="absolute top-2.5 left-2.5">
-                  <PlatformBadge platform={result.platform} />
-                </div>
-                {/* Match badge */}
-                <div className="absolute bottom-2.5 right-2.5">
-                  <span
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-white text-[11px] font-medium"
-                    style={{
-                      background: "rgba(0,0,0,0.45)",
-                      backdropFilter: "blur(8px)",
-                      WebkitBackdropFilter: "blur(8px)",
-                    }}
-                  >
-                    <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor">
-                      <path d="M6 0l1.5 4H12l-3.5 2.5L10 11 6 8l-4 3 1.5-4.5L0 4h4.5z" />
-                    </svg>
-                    {matchPercent(result.score)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Info */}
-              <div className="px-3 py-2.5">
-                <p className="text-xs font-medium" style={{ color: "var(--accent)" }}>
-                  @{result.creator}
-                </p>
-                <p className="text-xs text-ink2 mt-0.5 line-clamp-2 leading-relaxed">
-                  {result.caption}
-                </p>
-                <div className="flex items-center gap-3 mt-2 text-ink4">
-                  <span className="flex items-center gap-1 text-[10px]">
-                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                      <path
-                        d="M1.5 6.5l3-3.5 2.5 2L10.5 1.5"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path d="M1.5 6.5v4h9v-4" stroke="currentColor" strokeWidth="1.2" />
-                    </svg>
-                    {formatCount(result.views)}
-                  </span>
-                  <span className="flex items-center gap-1 text-[10px]">
-                    <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor">
-                      <path d="M6 10.5s-5-3.5-5-6.5a3 3 0 015-2.2A3 3 0 0111 4c0 3-5 6.5-5 6.5z" />
-                    </svg>
-                    {formatCount(result.likes)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </motion.button>
+          <ResultCard key={result.content_id} result={result} index={i} />
         ))}
       </div>
     </div>

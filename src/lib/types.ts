@@ -44,6 +44,15 @@ export interface ProductResult {
   groupName: string;
 }
 
+// Resolve media URLs — backend returns relative paths, proxy them through our API
+export function resolveMediaUrl(path: string): string {
+  if (!path) return "";
+  if (path.startsWith("http")) return path;
+  // Relative path like /media/thumbs/123.jpg → proxy through our API
+  const clean = path.startsWith("/") ? path.slice(1) : path;
+  return `/api/proxy/${clean}`;
+}
+
 // Helpers
 export function formatCount(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
