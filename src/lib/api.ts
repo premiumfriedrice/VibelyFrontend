@@ -24,6 +24,7 @@ export async function searchContent(
 
   const res = await fetch(`${BASE_URL}/api/search`, {
     method: "POST",
+    headers: { "ngrok-skip-browser-warning": "true" },
     body: formData,
   });
 
@@ -43,6 +44,7 @@ export async function investigateProducts(
 
   const res = await fetch(`${BASE_URL}/api/products`, {
     method: "POST",
+    headers: { "ngrok-skip-browser-warning": "true" },
     body: formData,
   });
 
