@@ -1,7 +1,5 @@
 import { ContentResult, ProductResult } from "./types";
 
-const BASE_URL = "https://shredder-sporting-exponent.ngrok-free.dev";
-
 export interface SearchResponse {
   results: ContentResult[];
 }
@@ -22,9 +20,8 @@ export async function searchContent(
   if (platform) formData.append("platform", platform);
   if (file) formData.append("file", file);
 
-  const res = await fetch(`${BASE_URL}/api/search`, {
+  const res = await fetch("/api/search", {
     method: "POST",
-    headers: { "ngrok-skip-browser-warning": "true" },
     body: formData,
   });
 
@@ -42,9 +39,8 @@ export async function investigateProducts(
   formData.append("file", imageBlob, "frame.jpg");
   if (query) formData.append("query", query);
 
-  const res = await fetch(`${BASE_URL}/api/products`, {
+  const res = await fetch("/api/products", {
     method: "POST",
-    headers: { "ngrok-skip-browser-warning": "true" },
     body: formData,
   });
 
