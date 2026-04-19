@@ -1,0 +1,195 @@
+@import "tailwindcss";
+
+:root {
+  /* Vibely Warm Editorial Palette */
+  --bg: #FAF5EC;
+  --bg2: #F3ECDC;
+  --bg3: #EDE3CD;
+  --card: #FFFDF7;
+  --ink: #1C1814;
+  --ink2: #3A322A;
+  --ink3: #6A6056;
+  --ink4: #9A9086;
+  --accent: #C28B40;
+  --accent-soft: #F0E4CD;
+  --accent-hover: #B07A30;
+  --line: #E6DCC5;
+  --line2: #D9CDB2;
+  --shadow: #3B281F;
+  --rec-red: #D94032;
+
+  /* Mode Chip Colors */
+  --mode-text: #D4A574;
+  --mode-image: #6BA632;
+  --mode-video: #2E7A73;
+  --mode-audio: #7A2E84;
+
+  /* Font families */
+  --font-display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+  /* Radii */
+  --r7: 7px;
+  --r10: 10px;
+  --r14: 14px;
+  --r18: 18px;
+  --r22: 22px;
+  --r26: 26px;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg2: var(--bg2);
+  --color-bg3: var(--bg3);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink2: var(--ink2);
+  --color-ink3: var(--ink3);
+  --color-ink4: var(--ink4);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-hover: var(--accent-hover);
+  --color-line: var(--line);
+  --color-line2: var(--line2);
+  --color-shadow: var(--shadow);
+  --color-rec-red: var(--rec-red);
+  --color-mode-text: var(--mode-text);
+  --color-mode-image: var(--mode-image);
+  --color-mode-video: var(--mode-video);
+  --color-mode-audio: var(--mode-audio);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line2);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink4);
+}
+
+/* Noise texture overlay */
+.noise-overlay::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.025;
+  pointer-events: none;
+  z-index: 9999;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* Card style matching iOS */
+.v-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow:
+    inset 0 1px 1px rgba(59, 40, 31, 0.05),
+    inset 0 2px 4px rgba(59, 40, 31, 0.04);
+}
+
+/* Pill style */
+.v-pill {
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow:
+    0 7px 18px rgba(59, 40, 31, 0.06),
+    0 1px 3px rgba(59, 40, 31, 0.06);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.v-pill:focus-within {
+  border-color: var(--line2);
+  box-shadow:
+    0 14px 36px rgba(59, 40, 31, 0.08),
+    0 1px 3px rgba(59, 40, 31, 0.06);
+}
+
+/* Gradient fade for bottom bar */
+.gradient-fade {
+  mask-image: linear-gradient(to bottom, transparent, black 40%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 40%);
+}
+
+/* Platform badge styles */
+.badge-instagram {
+  background: linear-gradient(135deg, #F77737, #E1306C, #C13584);
+}
+.badge-tiktok {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+/* Typing cursor blink */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.typing-cursor {
+  animation: cursor-blink 1s ease-in-out infinite;
+}
+
+/* Spinner rotation */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.spin-slow {
+  animation: spin-slow 1s linear infinite;
+}
+
+/* Subtle float animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* Stagger fade in */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fade-in-up {
+  animation: fade-in-up 0.4s ease-out forwards;
+}
+
+/* Selection color */
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
