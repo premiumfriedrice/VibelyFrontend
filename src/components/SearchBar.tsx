@@ -23,7 +23,12 @@ export default function SearchBar() {
   const [isTyping, setIsTyping] = useState(true);
   const [charIdx, setCharIdx] = useState(0);
   const [showPlusMenu, setShowPlusMenu] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Animated placeholder
   useEffect(() => {
@@ -107,6 +112,62 @@ export default function SearchBar() {
     setShowPlusMenu(false);
   };
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const reader = new FileReader();
+        reader.onload = () => {
+          addAttachment({
+            id: crypto.randomUUID(),
+            type: "audio",
+            label: `Recording (${formatTime(recordingTime)})`,
+            subtitle: `${(blob.size / 1024).toFixed(0)}KB`,
+            preview: reader.result as string,
+          });
+        };
+        reader.readAsDataURL(blob);
+
+        // Stop all tracks
+        stream.getTracks().forEach((track) => track.stop());
+        if (timerRef.current) clearInterval(timerRef.current);
+        setRecordingTime(0);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+
+      timerRef.current = setInterval(() => {
+        setRecordingTime((prev) => prev + 1);
+      }, 1000);
+    } catch {
+      console.warn("Microphone access denied");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+  };
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
   if (appState === "loading") return null;
 
   return (
@@ -138,7 +199,7 @@ export default function SearchBar() {
                     exit={{ opacity: 0, scale: 0.9 }}
                     className="v-card flex items-center gap-2 pl-2 pr-1 py-1 rounded-xl"
                   >
-                    {att.preview ? (
+                    {att.preview && att.type === "image" ? (
                       <img
                         src={att.preview}
                         alt=""
@@ -152,10 +213,12 @@ export default function SearchBar() {
                           color:
                             att.type === "video"
                               ? "var(--mode-video)"
-                              : "var(--mode-audio)",
+                              : att.type === "audio"
+                              ? "var(--mode-audio)"
+                              : "var(--mode-image)",
                         }}
                       >
-                        {att.type === "video" ? "▶" : "♪"}
+                        {att.type === "video" ? "▶" : att.type === "audio" ? "♪" : "🖼"}
                       </div>
                     )}
                     <div className="pr-1">
@@ -179,6 +242,33 @@ export default function SearchBar() {
                     </button>
                   </motion.div>
                 ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Recording indicator */}
+          <AnimatePresence>
+            {isRecording && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="flex items-center justify-center gap-3 mb-3 py-3 rounded-2xl"
+                style={{ background: "var(--card)", border: "1px solid var(--line)" }}
+              >
+                <motion.div
+                  className="w-2.5 h-2.5 rounded-full"
+                  style={{ background: "var(--rec-red)" }}
+                  animate={{ opacity: [1, 0.3, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                />
+                <span
+                  className="text-sm font-medium text-ink2"
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
+                  {formatTime(recordingTime)}
+                </span>
+                <span className="text-xs text-ink4">Recording...</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -267,6 +357,27 @@ export default function SearchBar() {
                   </div>
                 )}
               </div>
+
+              {/* Mic button */}
+              <button
+                onClick={isRecording ? stopRecording : startRecording}
+                className="flex items-center justify-center w-9 h-9 rounded-full mb-0.5 transition-all"
+                style={{
+                  background: isRecording ? "var(--rec-red)" : "var(--bg2)",
+                }}
+              >
+                {isRecording ? (
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <rect x="3" y="3" width="8" height="8" rx="1.5" fill="white" />
+                  </svg>
+                ) : (
+                  <svg width="14" height="18" viewBox="0 0 14 18" fill="none">
+                    <rect x="4" y="1" width="6" height="10" rx="3" stroke="var(--ink3)" strokeWidth="1.5" />
+                    <path d="M1 8a6 6 0 0012 0" stroke="var(--ink3)" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M7 15v2" stroke="var(--ink3)" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                )}
+              </button>
 
               {/* Send button */}
               <button
