@@ -9,6 +9,7 @@ import {
   Platform,
 } from "./types";
 import { MOCK_RESULTS, MOCK_HISTORY, LOADING_STEPS } from "./mock-data";
+import { searchContent } from "./api";
 
 interface VibelyState {
   appState: AppState;
@@ -82,32 +83,67 @@ export function VibelyProvider({ children }: { children: ReactNode }) {
     setAppState("loading");
     setLoadingStep(0);
 
-    // Simulate loading steps
+    // Animate loading steps
     const stepTimers: ReturnType<typeof setTimeout>[] = [];
     LOADING_STEPS.forEach((_, i) => {
       stepTimers.push(
-        setTimeout(() => {
-          setLoadingStep(i + 1);
-        }, (i + 1) * 600)
+        setTimeout(() => setLoadingStep(i + 1), (i + 1) * 500)
       );
     });
 
-    // Show results after loading
-    setTimeout(() => {
-      const searchResults = [...MOCK_RESULTS].sort(() => Math.random() - 0.5);
-      setResults(searchResults);
-      setAppState("results");
+    // Determine mode and file from attachments
+    const fileAttachment = attachments[0];
+    const mode = fileAttachment?.type || "text";
 
-      // Add to history
-      const historyItem: SearchHistoryItem = {
-        id: crypto.randomUUID(),
-        query: query.trim() || "Visual search",
-        attachments: [...attachments],
-        results: searchResults,
-        timestamp: new Date(),
-      };
-      setSearchHistory((prev) => [historyItem, ...prev]);
-    }, LOADING_STEPS.length * 600 + 400);
+    // Convert attachment preview (data URL) to Blob if present
+    const getFile = async (): Promise<File | undefined> => {
+      if (!fileAttachment?.preview) return undefined;
+      const res = await fetch(fileAttachment.preview);
+      const blob = await res.blob();
+      return new File([blob], fileAttachment.label, { type: blob.type });
+    };
+
+    (async () => {
+      try {
+        const file = await getFile();
+        const searchResults = await searchContent(query, mode, file);
+
+        // Complete remaining loading steps
+        stepTimers.forEach(clearTimeout);
+        setLoadingStep(LOADING_STEPS.length);
+
+        setTimeout(() => {
+          setResults(searchResults);
+          setAppState("results");
+
+          const historyItem: SearchHistoryItem = {
+            id: crypto.randomUUID(),
+            query: query.trim() || "Visual search",
+            attachments: [...attachments],
+            results: searchResults,
+            timestamp: new Date(),
+          };
+          setSearchHistory((prev) => [historyItem, ...prev]);
+        }, 400);
+      } catch {
+        // Fallback to mock data if API is unreachable
+        console.warn("API unreachable, using demo data");
+        setTimeout(() => {
+          const searchResults = [...MOCK_RESULTS].sort(() => Math.random() - 0.5);
+          setResults(searchResults);
+          setAppState("results");
+
+          const historyItem: SearchHistoryItem = {
+            id: crypto.randomUUID(),
+            query: query.trim() || "Visual search",
+            attachments: [...attachments],
+            results: searchResults,
+            timestamp: new Date(),
+          };
+          setSearchHistory((prev) => [historyItem, ...prev]);
+        }, LOADING_STEPS.length * 500 + 400);
+      }
+    })();
 
     return () => stepTimers.forEach(clearTimeout);
   }, [query, attachments]);

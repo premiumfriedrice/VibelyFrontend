@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useVibely } from "@/lib/store";
-import { formatCount, matchPercent } from "@/lib/types";
+import { formatCount, matchPercent, ProductResult } from "@/lib/types";
 import { MOCK_PRODUCTS, RELATED_CONTENT } from "@/lib/mock-data";
+import { investigateProducts } from "@/lib/api";
 
 export default function DetailModal() {
   const {
@@ -20,15 +21,28 @@ export default function DetailModal() {
   const [investigateState, setInvestigateState] = useState<
     "idle" | "loading" | "results"
   >("idle");
+  const [products, setProducts] = useState<ProductResult[]>([]);
 
   if (!selectedResult) return null;
 
   const result = selectedResult;
   const saved = isSaved(result.content_id);
 
-  const handleInvestigate = () => {
+  const handleInvestigate = async () => {
     setInvestigateState("loading");
-    setTimeout(() => setInvestigateState("results"), 2000);
+    try {
+      // Fetch thumbnail as blob and send to products API
+      const res = await fetch(result.thumb);
+      const blob = await res.blob();
+      const results = await investigateProducts(blob);
+      setProducts(results);
+      setInvestigateState("results");
+    } catch {
+      // Fallback to mock products
+      console.warn("Products API unreachable, using demo data");
+      setProducts(MOCK_PRODUCTS);
+      setInvestigateState("results");
+    }
   };
 
   const handleClose = () => {
@@ -36,6 +50,7 @@ export default function DetailModal() {
     setSelectedResult(null);
     setInvestigateState("idle");
     setShowFullCaption(false);
+    setProducts([]);
   };
 
   return (
@@ -259,7 +274,7 @@ export default function DetailModal() {
                         Found Products
                       </p>
                       <div className="grid grid-cols-2 gap-3">
-                        {MOCK_PRODUCTS.map((product) => (
+                        {products.map((product) => (
                           <div
                             key={product.id}
                             className="v-card rounded-xl overflow-hidden group cursor-pointer hover:shadow-md transition-shadow"

@@ -32,27 +32,19 @@ export default function Navbar() {
       {/* Logo */}
       <button
         onClick={resetSearch}
-        className="flex items-center gap-1.5 group"
+        className="relative group"
       >
         <span
-          className="text-xl font-medium tracking-tight"
+          className="text-xl tracking-tight"
           style={{ fontFamily: "var(--font-display)", fontWeight: 500 }}
         >
-          Vibel
+          Vibely
         </span>
-        <span className="relative">
-          <span
-            className="text-xl font-medium tracking-tight"
-            style={{ fontFamily: "var(--font-display)", fontWeight: 500 }}
-          >
-            y
-          </span>
-          <motion.span
-            className="absolute -top-0.5 -right-2 w-1.5 h-1.5 rounded-full bg-accent"
-            animate={{ scale: [1, 1.3, 1] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          />
-        </span>
+        <motion.span
+          className="absolute -top-0.5 -right-1.5 w-1.5 h-1.5 rounded-full bg-accent"
+          animate={{ scale: [1, 1.3, 1] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        />
       </button>
 
       {/* Close button — only in results state */}
